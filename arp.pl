@@ -1,12 +1,12 @@
 #!/usr/bin/perl
 
-# Documentación utilizada para realizar este script:
-# XML API de PaloAlto: https://www.paloaltonetworks.com/documentation/71/pan-os/xml-api
-# Módulo LibXML de perl: http://grantm.github.io/perl-libxml-by-example/basics.html
-# Extensión del Agente SNMP local para ejecutar código perl: https://vincent.bernat.im/en/blog/2012-extending-netsnmp
-# MIB de Cisco para la tabla ARP: http://networkengineering.stackexchange.com/questions/2900/using-snmp-to-retrieve-the-arp-and-mac-address-tables-from-a-switch
+# Documentation used to build up the script:
+# XML API of PaloAlto: https://www.paloaltonetworks.com/documentation/71/pan-os/xml-api
+# LibXML perl module: http://grantm.github.io/perl-libxml-by-example/basics.html
+# How to extend SNMP  with perl scripts : https://vincent.bernat.im/en/blog/2012-extending-netsnmp
+# MIB of Cisco related to ARP table: http://networkengineering.stackexchange.com/questions/2900/using-snmp-to-retrieve-the-arp-and-mac-address-tables-from-a-switch
 
-# La respuesta es similar a:
+# The response from a PaloAlto device look like:
 #<response status="success"><result>
 #  <max>32000</max>
 #  <total>540</total>
@@ -42,10 +42,9 @@
 use XML::LibXML;
 use SNMP::Extension::PassPersist;
 
-# MIB Base para la tabla ARP.
+# MIB base that will be use to tied the ARP table. This OID should be used at snmpd.conf
 $base = ".1.3.6.1.2.1.3.1.1.2";
 
-# Datos del FW de donde se coge la tabla ARP
 # DNS or IP address of your firewall
 $fw="";
 
@@ -76,7 +75,7 @@ sub update_tree {
 
 	$dom = XML::LibXML->load_xml(string => $resp);
 
-	# Para cada entrada en la tabla ARP del FW
+	# Iterate over each entry
 	foreach my $title ($dom->findnodes('/response/result/entries/entry')) {
                 #print "IP: " . $title->findvalue('ip') ." -> MAC: ". $title->findvalue('mac') .
                 #       " Interface: " . $title->findvalue('interface') ." -> Port: ". $title->findvalue('port') . "\n";
@@ -87,10 +86,10 @@ sub update_tree {
                 $mac=$title->findvalue('mac');
 
                 $mac =~ s/:/ /g;
-if ($mac =~ m/^([0-9A-Fa-f]{2}[ ]){5}([0-9A-Fa-f]{2})/) {
+		if ($mac =~ m/^([0-9A-Fa-f]{2}[ ]){5}([0-9A-Fa-f]{2})/) {
                         $extsnmp->add_oid_entry($oid,"octetstr",$mac);
                 } else {
-                        #print "No es una MAC: $vlan $ip $mac\n";
+                        #print "This is not a MAC address: $vlan $ip $mac\n";
                 }
 	}
 }
